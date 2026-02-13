@@ -102,10 +102,7 @@ class TestPrompts:
         assert response.status_code == 200
         data = response.json()
         assert data["title"] == "Updated Title"
-        
-        # NOTE: This assertion will fail due to Bug #2!
-        # The updated_at should be different from original
-        # assert data["updated_at"] != original_updated_at  # Uncomment after fix
+        assert data["updated_at"] != original_updated_at 
     
     def test_sorting_order(self, client: TestClient):
         """Test that prompts are sorted newest first.
