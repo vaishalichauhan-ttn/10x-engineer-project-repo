@@ -168,3 +168,31 @@ class TestCollections:
         if prompts:
             # Prompt exists, check collection_id
             assert prompts[0]["collection_id"] is None
+    
+
+    def test_partial_update_prompt(self, client: TestClient, sample_prompt_data):
+        # Create a prompt first
+        create_response = client.post("/prompts", json=sample_prompt_data)
+        prompt_id = create_response.json()["id"]
+        original_updated_at = create_response.json()["updated_at"]
+        
+        # Update it
+        updated_data = {
+            "title": "Updated Title",
+        }
+        
+        import time
+        time.sleep(0.1)  # Small delay to ensure timestamp would change
+        
+        response = client.patch(f"/prompts/{prompt_id}", json=updated_data)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["title"] == "Updated Title"
+        assert data["updated_at"] != original_updated_at 
+
+        # Testing with no update data
+        new_updated_data = {}
+        response = client.patch(f"/prompts/{prompt_id}", json=new_updated_data)
+        assert response.status_code == 400
+        assert response.json()["detail"] == "No fields provided for update"
+
