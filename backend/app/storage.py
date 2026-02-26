@@ -112,17 +112,14 @@ class Storage:
 
     def delete_prompt(self, prompt_id: str) -> bool:
         """Deletes a prompt from storage.
-
         Args:
             prompt_id (str): The unique identifier of the prompt to be deleted.
-
         Returns:
             bool: True if the prompt was successfully deleted, False if
                 the prompt was not found.
-
         Raises:
-            KeyError: If the prompt_id is invalid or not present in the storage.
-
+            KeyError: If the prompt_id is invalid or not present in the
+                storage.
         Example:
             storage = Storage()
             storage.delete_prompt('example_id')
