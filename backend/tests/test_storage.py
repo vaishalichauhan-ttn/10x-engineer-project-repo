@@ -121,3 +121,66 @@ class TestStorageEdgeCases:
 
         assert storage.get_all_prompts() == []
         assert storage.get_all_collections() == []
+
+
+class TestPromptVersionStorage:
+    """Version lifecycle operations on Storage."""
+
+    def test_create_and_fetch_versions(self):
+        storage = Storage()
+        prompt = Prompt(id="p1", title="Initial", content="Initial content")
+        storage.create_prompt(prompt)
+
+        prompt_v1 = Prompt(id="p1", title="V1", content="Content 1")
+        storage.update_prompt("p1", prompt_v1)
+        version1 = storage.create_prompt_version(prompt_v1)
+
+        prompt_v2 = Prompt(id="p1", title="V2", content="Content 2")
+        storage.update_prompt("p1", prompt_v2)
+        version2 = storage.create_prompt_version(prompt_v2, note="manual checkpoint")
+
+        assert version1.version_number == 1
+        assert version2.version_number == 2
+        assert version2.note == "manual checkpoint"
+
+        versions = storage.get_prompt_versions("p1")
+        assert [v.version_number for v in versions] == [2, 1]
+        assert versions[0].title == "V2"
+
+        specific = storage.get_prompt_version("p1", 1)
+        assert specific is not None
+        assert specific.title == "V1"
+
+    def test_get_prompt_versions_respects_limit_and_offset(self):
+        storage = Storage()
+        prompt = Prompt(id="p1", title="Initial", content="Initial content")
+        storage.create_prompt(prompt)
+
+        for index in range(1, 4):
+            updated = Prompt(id="p1", title=f"V{index}", content=f"Content {index}")
+            storage.update_prompt("p1", updated)
+            storage.create_prompt_version(updated)
+
+        versions = storage.get_prompt_versions("p1", limit=1, offset=1)
+        assert len(versions) == 1
+        assert versions[0].version_number == 2
+
+    def test_delete_prompt_also_deletes_versions(self):
+        storage = Storage()
+        prompt = Prompt(id="p1", title="Initial", content="Initial content")
+        storage.create_prompt(prompt)
+        storage.create_prompt_version(prompt)
+
+        assert storage.delete_prompt("p1") is True
+        assert storage.get_prompt_versions("p1") == []
+        assert storage.get_prompt_version("p1", 1) is None
+
+    def test_clear_removes_versions(self):
+        storage = Storage()
+        prompt = Prompt(id="p1", title="Initial", content="Initial content")
+        storage.create_prompt(prompt)
+        storage.create_prompt_version(prompt)
+
+        storage.clear()
+
+        assert storage.get_prompt_versions("p1") == []

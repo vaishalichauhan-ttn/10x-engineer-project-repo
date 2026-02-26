@@ -8,7 +8,7 @@ from app.models import (
     Prompt, PromptCreate, PromptUpdate, PromptPatch,
     Collection, CollectionCreate,
     PromptList, CollectionList, HealthResponse,
-    get_current_time
+    PromptVersion, PromptVersionCreate, get_current_time
 )
 from app.storage import storage
 from app.utils import sort_prompts_by_date, filter_prompts_by_collection, search_prompts
@@ -162,7 +162,9 @@ def update_prompt(prompt_id: str, prompt_data: PromptUpdate):
         updated_at=get_current_time()
     )
     
-    return storage.update_prompt(prompt_id, updated_prompt)
+    updated = storage.update_prompt(prompt_id, updated_prompt)
+    storage.create_prompt_version(updated)
+    return updated
 
 @app.patch("/prompts/{prompt_id}", response_model=Prompt)
 def patch_prompt(prompt_id: str, prompt_data: PromptPatch):
@@ -208,7 +210,9 @@ def patch_prompt(prompt_id: str, prompt_data: PromptPatch):
         updated_at=get_current_time(),
     )
 
-    return storage.update_prompt(prompt_id, updated_prompt)
+    updated = storage.update_prompt(prompt_id, updated_prompt)
+    storage.create_prompt_version(updated)
+    return updated
 
 @app.delete("/prompts/{prompt_id}", status_code=204)
 def delete_prompt(prompt_id: str):
@@ -226,6 +230,81 @@ def delete_prompt(prompt_id: str):
     if not storage.delete_prompt(prompt_id):
         raise HTTPException(status_code=404, detail="Prompt not found")
     return None
+
+
+@app.get("/prompts/{prompt_id}/versions", response_model=list[PromptVersion])
+def list_prompt_versions(
+    prompt_id: str,
+    limit: Optional[int] = None,
+    offset: int = 0,
+):
+    """List versions for a prompt, newest-first."""
+    prompt = storage.get_prompt(prompt_id)
+    if not prompt:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+
+    return storage.get_prompt_versions(prompt_id, limit=limit, offset=offset)
+
+
+@app.get("/prompts/{prompt_id}/versions/{version_number}", response_model=PromptVersion)
+def get_prompt_version(prompt_id: str, version_number: int):
+    """Get a single version snapshot."""
+    prompt = storage.get_prompt(prompt_id)
+    if not prompt:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+
+    version = storage.get_prompt_version(prompt_id, version_number)
+    if not version:
+        raise HTTPException(status_code=404, detail="Version not found")
+
+    return version
+
+
+@app.post("/prompts/{prompt_id}/versions", response_model=PromptVersion, status_code=201)
+def create_manual_prompt_version(
+    prompt_id: str, checkpoint_data: Optional[PromptVersionCreate] = None
+):
+    """Create a manual version checkpoint for the current prompt state."""
+    prompt = storage.get_prompt(prompt_id)
+    if not prompt:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+
+    note = checkpoint_data.note if checkpoint_data else None
+    return storage.create_prompt_version(prompt, note=note)
+
+
+@app.post("/prompts/{prompt_id}/versions/{version_number}/revert", response_model=Prompt)
+def revert_prompt_to_version(prompt_id: str, version_number: int):
+    """Revert a prompt to a historical version snapshot."""
+    existing = storage.get_prompt(prompt_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+
+    version = storage.get_prompt_version(prompt_id, version_number)
+    if not version:
+        raise HTTPException(status_code=404, detail="Version not found")
+
+    is_noop = (
+        existing.title == version.title
+        and existing.content == version.content
+        and existing.description == version.description
+        and existing.collection_id == version.collection_id
+    )
+    if is_noop:
+        raise HTTPException(status_code=409, detail="Prompt already matches target version")
+
+    reverted_prompt = Prompt(
+        id=existing.id,
+        title=version.title,
+        content=version.content,
+        description=version.description,
+        collection_id=version.collection_id,
+        created_at=existing.created_at,
+        updated_at=get_current_time(),
+    )
+    updated = storage.update_prompt(prompt_id, reverted_prompt)
+    storage.create_prompt_version(updated, note=f"Reverted to version {version_number}")
+    return updated
 
 
 # ============== Collection Endpoints ==============

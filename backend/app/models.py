@@ -106,6 +106,30 @@ class Prompt(PromptBase):
         from_attributes = True
 
 
+# ============== Prompt Version Models ==============
+class PromptVersion(BaseModel):
+    """Immutable snapshot of a prompt at a point in time."""
+
+    id: str = Field(default_factory=generate_id)
+    prompt_id: str
+    version_number: int
+    title: str = Field(..., min_length=1, max_length=200)
+    content: str = Field(..., min_length=1)
+    description: Optional[str] = Field(None, max_length=500)
+    collection_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=get_current_time)
+    note: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class PromptVersionCreate(BaseModel):
+    """Payload for creating a manual version checkpoint."""
+
+    note: Optional[str] = Field(None, max_length=500)
+
+
 # ============== Collection Models ==============
 
 class CollectionBase(BaseModel):

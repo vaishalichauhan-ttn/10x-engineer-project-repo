@@ -5,7 +5,7 @@ In a production environment, this would be replaced with a database.
 """
 
 from typing import Dict, List, Optional
-from app.models import Prompt, Collection
+from app.models import Prompt, Collection, PromptVersion
 
 
 class Storage:
@@ -18,6 +18,7 @@ class Storage:
     def __init__(self):
         self._prompts: Dict[str, Prompt] = {}
         self._collections: Dict[str, Collection] = {}
+        self._prompt_versions: Dict[str, List[PromptVersion]] = {}
     
     # ============== Prompt Operations ==============
     
@@ -117,8 +118,46 @@ class Storage:
 
         if prompt_id in self._prompts:
             del self._prompts[prompt_id]
+            self._prompt_versions.pop(prompt_id, None)
             return True
         return False
+
+    # ============== Prompt Version Operations ==============
+
+    def create_prompt_version(self, prompt: Prompt, note: Optional[str] = None) -> PromptVersion:
+        """Create and store a new immutable version snapshot for a prompt."""
+        versions = self._prompt_versions.get(prompt.id, [])
+        version = PromptVersion(
+            prompt_id=prompt.id,
+            version_number=len(versions) + 1,
+            title=prompt.title,
+            content=prompt.content,
+            description=prompt.description,
+            collection_id=prompt.collection_id,
+            note=note,
+        )
+        versions.append(version)
+        self._prompt_versions[prompt.id] = versions
+        return version
+
+    def get_prompt_versions(
+        self, prompt_id: str, limit: Optional[int] = None, offset: int = 0
+    ) -> List[PromptVersion]:
+        """Get prompt versions sorted newest-first with optional pagination."""
+        versions = list(reversed(self._prompt_versions.get(prompt_id, [])))
+        if offset < 0:
+            offset = 0
+        if limit is None:
+            return versions[offset:]
+        return versions[offset : offset + limit]
+
+    def get_prompt_version(self, prompt_id: str, version_number: int) -> Optional[PromptVersion]:
+        """Get a specific version by prompt id and version number."""
+        versions = self._prompt_versions.get(prompt_id, [])
+        for version in versions:
+            if version.version_number == version_number:
+                return version
+        return None
     
     # ============== Collection Operations ==============
     
@@ -228,6 +267,7 @@ class Storage:
         """
         self._prompts.clear()
         self._collections.clear()
+        self._prompt_versions.clear()
 
 
 # Global storage instance

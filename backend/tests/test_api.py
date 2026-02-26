@@ -337,3 +337,224 @@ class TestCollections:
         assert response.status_code == 404
         assert response.json()["detail"] == "Collection not found"
 
+
+class TestPromptVersions:
+    """Tests for prompt version history endpoints and side effects."""
+
+    def test_put_creates_first_version_snapshot(
+        self, client: TestClient, sample_prompt_data
+    ):
+        create_response = client.post("/prompts", json=sample_prompt_data)
+        prompt_id = create_response.json()["id"]
+
+        update_payload = {
+            "title": "Updated title v1",
+            "content": "Updated content v1",
+            "description": "Updated description v1",
+            "collection_id": None,
+        }
+        update_response = client.put(f"/prompts/{prompt_id}", json=update_payload)
+        assert update_response.status_code == 200
+
+        versions_response = client.get(f"/prompts/{prompt_id}/versions")
+        assert versions_response.status_code == 200
+        versions = versions_response.json()
+        assert len(versions) == 1
+        assert versions[0]["version_number"] == 1
+        assert versions[0]["prompt_id"] == prompt_id
+        assert versions[0]["title"] == "Updated title v1"
+        assert versions[0]["content"] == "Updated content v1"
+        assert "created_at" in versions[0]
+
+    def test_patch_creates_next_version_and_list_is_newest_first(
+        self, client: TestClient, sample_prompt_data
+    ):
+        create_response = client.post("/prompts", json=sample_prompt_data)
+        prompt_id = create_response.json()["id"]
+
+        put_payload = {
+            "title": "Version 1",
+            "content": "Content 1",
+            "description": "Description 1",
+            "collection_id": None,
+        }
+        assert client.put(f"/prompts/{prompt_id}", json=put_payload).status_code == 200
+        time.sleep(0.1)
+        assert (
+            client.patch(f"/prompts/{prompt_id}", json={"title": "Version 2"}).status_code
+            == 200
+        )
+
+        versions_response = client.get(f"/prompts/{prompt_id}/versions")
+        assert versions_response.status_code == 200
+        versions = versions_response.json()
+        assert [version["version_number"] for version in versions] == [2, 1]
+        assert versions[0]["title"] == "Version 2"
+        assert versions[1]["title"] == "Version 1"
+
+    def test_get_versions_prompt_not_found_returns_404(self, client: TestClient):
+        response = client.get("/prompts/nonexistent-id/versions")
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Prompt not found"
+
+    def test_get_specific_version_returns_full_snapshot(
+        self, client: TestClient, sample_prompt_data
+    ):
+        create_response = client.post("/prompts", json=sample_prompt_data)
+        prompt_id = create_response.json()["id"]
+
+        put_payload = {
+            "title": "Snapshot Title",
+            "content": "Snapshot Content",
+            "description": "Snapshot Description",
+            "collection_id": None,
+        }
+        assert client.put(f"/prompts/{prompt_id}", json=put_payload).status_code == 200
+
+        response = client.get(f"/prompts/{prompt_id}/versions/1")
+        assert response.status_code == 200
+        version = response.json()
+        assert version["prompt_id"] == prompt_id
+        assert version["version_number"] == 1
+        assert version["title"] == "Snapshot Title"
+        assert version["content"] == "Snapshot Content"
+        assert version["description"] == "Snapshot Description"
+        assert "collection_id" in version
+        assert "created_at" in version
+
+    def test_get_specific_version_not_found_returns_404(
+        self, client: TestClient, sample_prompt_data
+    ):
+        create_response = client.post("/prompts", json=sample_prompt_data)
+        prompt_id = create_response.json()["id"]
+
+        response = client.get(f"/prompts/{prompt_id}/versions/99")
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Version not found"
+
+    def test_manual_checkpoint_creates_version_without_changing_prompt(
+        self, client: TestClient, sample_prompt_data
+    ):
+        create_response = client.post("/prompts", json=sample_prompt_data)
+        prompt = create_response.json()
+        prompt_id = prompt["id"]
+
+        checkpoint_response = client.post(
+            f"/prompts/{prompt_id}/versions",
+            json={"note": "Before risky edit"},
+        )
+        assert checkpoint_response.status_code == 201
+        checkpoint = checkpoint_response.json()
+        assert checkpoint["version_number"] == 1
+        assert checkpoint["note"] == "Before risky edit"
+        assert checkpoint["title"] == prompt["title"]
+        assert checkpoint["content"] == prompt["content"]
+
+        prompt_after_checkpoint = client.get(f"/prompts/{prompt_id}")
+        assert prompt_after_checkpoint.status_code == 200
+        assert prompt_after_checkpoint.json()["title"] == prompt["title"]
+        assert prompt_after_checkpoint.json()["content"] == prompt["content"]
+
+    def test_revert_restores_previous_snapshot_and_creates_new_version(
+        self, client: TestClient, sample_prompt_data
+    ):
+        create_response = client.post("/prompts", json=sample_prompt_data)
+        prompt_id = create_response.json()["id"]
+
+        put_v1_payload = {
+            "title": "Version 1 title",
+            "content": "Version 1 content",
+            "description": "Version 1 description",
+            "collection_id": None,
+        }
+        put_v2_payload = {
+            "title": "Version 2 title",
+            "content": "Version 2 content",
+            "description": "Version 2 description",
+            "collection_id": None,
+        }
+
+        assert client.put(f"/prompts/{prompt_id}", json=put_v1_payload).status_code == 200
+        assert client.put(f"/prompts/{prompt_id}", json=put_v2_payload).status_code == 200
+
+        revert_response = client.post(f"/prompts/{prompt_id}/versions/1/revert")
+        assert revert_response.status_code == 200
+        reverted_prompt = revert_response.json()
+        assert reverted_prompt["id"] == prompt_id
+        assert reverted_prompt["title"] == "Version 1 title"
+        assert reverted_prompt["content"] == "Version 1 content"
+
+        versions_response = client.get(f"/prompts/{prompt_id}/versions")
+        assert versions_response.status_code == 200
+        versions = versions_response.json()
+        assert [version["version_number"] for version in versions] == [3, 2, 1]
+        assert versions[0]["title"] == "Version 1 title"
+        assert versions[0]["content"] == "Version 1 content"
+
+    def test_revert_noop_returns_409(self, client: TestClient, sample_prompt_data):
+        create_response = client.post("/prompts", json=sample_prompt_data)
+        prompt_id = create_response.json()["id"]
+
+        put_v1_payload = {
+            "title": "Stable title",
+            "content": "Stable content",
+            "description": "Stable description",
+            "collection_id": None,
+        }
+        put_v2_payload = {
+            "title": "Changed title",
+            "content": "Changed content",
+            "description": "Changed description",
+            "collection_id": None,
+        }
+        assert client.put(f"/prompts/{prompt_id}", json=put_v1_payload).status_code == 200
+        assert client.put(f"/prompts/{prompt_id}", json=put_v2_payload).status_code == 200
+
+        # First revert to v1 should succeed.
+        assert client.post(f"/prompts/{prompt_id}/versions/1/revert").status_code == 200
+        # Reverting again to same snapshot should be treated as no-op.
+        second_revert = client.post(f"/prompts/{prompt_id}/versions/1/revert")
+        assert second_revert.status_code == 409
+
+    def test_deleting_prompt_removes_all_versions(
+        self, client: TestClient, sample_prompt_data
+    ):
+        create_response = client.post("/prompts", json=sample_prompt_data)
+        prompt_id = create_response.json()["id"]
+
+        put_payload = {
+            "title": "Versioned title",
+            "content": "Versioned content",
+            "description": "Versioned description",
+            "collection_id": None,
+        }
+        assert client.put(f"/prompts/{prompt_id}", json=put_payload).status_code == 200
+        assert client.delete(f"/prompts/{prompt_id}").status_code == 204
+
+        versions_response = client.get(f"/prompts/{prompt_id}/versions")
+        assert versions_response.status_code == 404
+        assert versions_response.json()["detail"] == "Prompt not found"
+
+    def test_versions_preserve_historical_collection_id_after_collection_delete(
+        self, client: TestClient, sample_prompt_data
+    ):
+        collection = client.post(
+            "/collections",
+            json={"name": "Versioned Collection", "description": "desc"},
+        ).json()
+
+        create_response = client.post(
+            "/prompts",
+            json={**sample_prompt_data, "collection_id": collection["id"]},
+        )
+        prompt_id = create_response.json()["id"]
+
+        assert (
+            client.patch(f"/prompts/{prompt_id}", json={"title": "Version with collection"}).status_code
+            == 200
+        )
+        assert client.delete(f"/collections/{collection['id']}").status_code == 204
+
+        version_response = client.get(f"/prompts/{prompt_id}/versions/1")
+        assert version_response.status_code == 200
+        assert version_response.json()["collection_id"] == collection["id"]

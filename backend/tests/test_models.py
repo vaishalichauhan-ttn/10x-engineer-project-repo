@@ -15,6 +15,8 @@ from app.models import (
     PromptList,
     PromptPatch,
     PromptUpdate,
+    PromptVersion,
+    PromptVersionCreate,
 )
 
 
@@ -70,6 +72,26 @@ class TestModelValidation:
         with pytest.raises(ValidationError):
             CollectionCreate(name="Engineering", description="d" * 501)
 
+    def test_prompt_version_validates_required_fields_and_limits(self):
+        with pytest.raises(ValidationError):
+            PromptVersion(
+                prompt_id="prompt-1",
+                version_number=1,
+                title="",
+                content="content",
+            )
+
+        with pytest.raises(ValidationError):
+            PromptVersion(
+                prompt_id="prompt-1",
+                version_number=1,
+                title="valid",
+                content="",
+            )
+
+        with pytest.raises(ValidationError):
+            PromptVersionCreate(note="n" * 501)
+
 
 class TestDefaultValues:
     """Default values produced by model factories."""
@@ -91,6 +113,21 @@ class TestDefaultValues:
         assert collection.id
         assert isinstance(collection.created_at, datetime)
         assert collection.description is None
+
+    def test_prompt_version_generates_id_and_created_at(self):
+        version = PromptVersion(
+            prompt_id="prompt-1",
+            version_number=1,
+            title="Version title",
+            content="Version content",
+        )
+
+        assert isinstance(version.id, str)
+        assert version.id
+        assert isinstance(version.created_at, datetime)
+        assert version.note is None
+        assert version.description is None
+        assert version.collection_id is None
 
 
 class TestSerialization:
@@ -149,3 +186,25 @@ class TestSerialization:
         assert collection_payload["collections"][0]["created_at"] == "2024-01-02T00:00:00"
 
         assert health_payload == {"status": "healthy", "version": "1.0.0"}
+
+    def test_prompt_version_serialization_to_dict_and_json_mode(self):
+        version = PromptVersion(
+            id="version-1",
+            prompt_id="prompt-1",
+            version_number=2,
+            title="Snapshot",
+            content="Snapshot content",
+            description="Snapshot description",
+            collection_id="collection-1",
+            created_at=datetime(2024, 1, 3, 0, 0, 0),
+            note="Checkpoint",
+        )
+
+        data = version.model_dump()
+        assert data["id"] == "version-1"
+        assert data["prompt_id"] == "prompt-1"
+        assert data["version_number"] == 2
+        assert data["created_at"] == datetime(2024, 1, 3, 0, 0, 0)
+
+        json_ready = version.model_dump(mode="json")
+        assert json_ready["created_at"] == "2024-01-03T00:00:00"
