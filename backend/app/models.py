@@ -24,7 +24,8 @@ class PromptBase(BaseModel):
     Attributes:
         title (str): The title of the prompt, with a minimum length of 1
             and a maximum of 200 characters.
-        content (str): The main content of the prompt, with a minimum length of 1 character.
+        content (str): The main content of the prompt, with a minimum
+            length of 1 character.
         description (Optional[str]): A brief description of the prompt,
             with a maximum of 500 characters.
         collection_id (Optional[str]): An optional identifier for the

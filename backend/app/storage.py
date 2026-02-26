@@ -20,14 +20,15 @@ class Storage:
         self._prompts: dict[str, Prompt] = {}
         self._collections: dict[str, Collection] = {}
         self._prompt_versions: dict[str, list[PromptVersion]] = {}
-    
+
     # ============== Prompt Operations ==============
-    
+
     def create_prompt(self, prompt: Prompt) -> Prompt:
         """Adds a new prompt to the storage.
 
         Args:
-            prompt (Prompt): The prompt to be added. It must include a unique `id`.
+            prompt (Prompt): The prompt to be added. It must include a
+                unique `id`.
         Returns:
             Prompt: The same `Prompt` object that was added to the storage.
 
@@ -43,7 +44,7 @@ class Storage:
 
         self._prompts[prompt.id] = prompt
         return prompt
-    
+
     def get_prompt(self, prompt_id: str) -> Optional[Prompt]:
         """Retrieves a prompt by its ID.
 
@@ -62,11 +63,12 @@ class Storage:
                 print(prompt.content)
         """
         return self._prompts.get(prompt_id)
-    
+
     def get_all_prompts(self) -> list[Prompt]:
         """Retrieves all stored prompts.
 
-        This method returns a list of all prompt objects currently stored in the system.
+        This method returns a list of all prompt objects currently
+        stored in the system.
 
         Returns:
             List[Prompt]: A list containing all the prompt objects.
@@ -78,7 +80,7 @@ class Storage:
             prompts = storage_instance.get_all_prompts()
         """
         return list(self._prompts.values())
-    
+
     def update_prompt(
         self,
         prompt_id: str,
@@ -107,7 +109,7 @@ class Storage:
             return None
         self._prompts[prompt_id] = prompt
         return prompt
-    
+
     def delete_prompt(self, prompt_id: str) -> bool:
         """Deletes a prompt from storage.
 
@@ -115,7 +117,8 @@ class Storage:
             prompt_id (str): The unique identifier of the prompt to be deleted.
 
         Returns:
-            bool: True if the prompt was successfully deleted, False if the prompt was not found.
+            bool: True if the prompt was successfully deleted, False if
+                the prompt was not found.
 
         Raises:
             KeyError: If the prompt_id is invalid or not present in the storage.
@@ -165,7 +168,7 @@ class Storage:
             offset = 0
         if limit is None:
             return versions[offset:]
-        return versions[offset : offset + limit]
+        return versions[offset:offset + limit]
 
     def get_prompt_version(
         self,
@@ -204,7 +207,8 @@ class Storage:
         """Retrieve a collection by its ID.
 
         Args:
-            collection_id (str): The unique identifier for the collection to retrieve.
+            collection_id (str): The unique identifier for the collection
+                to retrieve.
 
         Returns:
             Optional[Collection]: The collection associated with the
@@ -238,10 +242,12 @@ class Storage:
         """Deletes a collection by its identifier.
 
         Args:
-            collection_id (str): The unique identifier of the collection to be deleted.
+            collection_id (str): The unique identifier of the collection
+                to be deleted.
 
         Returns:
-            bool: True if the collection was successfully deleted, False otherwise.
+            bool: True if the collection was successfully deleted, False
+                otherwise.
 
         Raises:
             KeyError: If the collection_id does not exist in the collections.

@@ -44,7 +44,9 @@ def filter_prompts_by_collection(
             collection.
 
     Example:
-        >>> filtered_prompts = filter_prompts_by_collection(prompts, "collection_123")
+        >>> filtered_prompts = filter_prompts_by_collection(
+        ...     prompts, "collection_123"
+        ... )
     """
     return [p for p in prompts if p.collection_id == collection_id]
 
