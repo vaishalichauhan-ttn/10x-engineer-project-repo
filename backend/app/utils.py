@@ -1,16 +1,24 @@
 """Utility functions for PromptLab"""
 
-from typing import List
+import re
+from typing import Optional
+
 from app.models import Prompt
 
+TEMPLATE_VARIABLE_PATTERN = re.compile(r"\{\{(\w+)\}\}")
 
-def sort_prompts_by_date(prompts: List[Prompt], descending: bool = True) -> List[Prompt]:
+
+def sort_prompts_by_date(
+    prompts: list[Prompt],
+    descending: bool = True,
+) -> list[Prompt]:
     """Sort prompts by creation date.
 
     Args:
         prompts (List[Prompt]): A list of Prompt objects to be sorted.
-        descending (bool): Determines sort order. If True, sorts from newest to oldest; 
-        if False, sorts from oldest to newest. Default is True.
+        descending (bool): Determines sort order. If True, sorts from
+            newest to oldest; if False, sorts from oldest to newest.
+            Default is True.
 
     Returns:
         List[Prompt]: A sorted list of Prompt objects by creation date.
@@ -21,7 +29,10 @@ def sort_prompts_by_date(prompts: List[Prompt], descending: bool = True) -> List
     return sorted(prompts, key=lambda p: p.created_at, reverse=descending)
 
 
-def filter_prompts_by_collection(prompts: List[Prompt], collection_id: str) -> List[Prompt]:
+def filter_prompts_by_collection(
+    prompts: list[Prompt],
+    collection_id: Optional[str],
+) -> list[Prompt]:
     """Filter prompts by collection ID.
 
     Args:
@@ -29,7 +40,8 @@ def filter_prompts_by_collection(prompts: List[Prompt], collection_id: str) -> L
         collection_id (str): The collection ID to filter prompts by.
 
     Returns:
-        List[Prompt]: A list of Prompt objects that belong to the specified collection.
+        List[Prompt]: Prompt objects that belong to the specified
+            collection.
 
     Example:
         >>> filtered_prompts = filter_prompts_by_collection(prompts, "collection_123")
@@ -37,28 +49,34 @@ def filter_prompts_by_collection(prompts: List[Prompt], collection_id: str) -> L
     return [p for p in prompts if p.collection_id == collection_id]
 
 
-def search_prompts(prompts: List[Prompt], query: str) -> List[Prompt]:
+def search_prompts(prompts: list[Prompt], query: str) -> list[Prompt]:
     """Search prompts by title or description matching the query.
 
     Args:
         prompts (List[Prompt]): A list of Prompt objects to be searched.
-        query (str): The search string to match against prompt titles and descriptions.
+        query (str): The search string to match against prompt titles
+            and descriptions.
 
     Returns:
-        List[Prompt]: A list of Prompt objects that match the search criteria.
+        List[Prompt]: Prompt objects that match the search criteria.
 
     Example:
         >>> searched_prompts = search_prompts(prompts, "AI")
     """
     query_lower = query.lower()
     return [
-        p for p in prompts 
-        if query_lower in p.title.lower() or 
-           (p.description and query_lower in p.description.lower())
+        p for p in prompts
+        if (
+            query_lower in p.title.lower()
+            or (
+                p.description
+                and query_lower in p.description.lower()
+            )
+        )
     ]
 
 
-def validate_prompt_content(content: str) -> bool:
+def validate_prompt_content(content: Optional[str]) -> bool:
     """Check if prompt content is valid.
 
     Args:
@@ -79,11 +97,14 @@ def validate_prompt_content(content: str) -> bool:
     return len(content.strip()) >= 10
 
 
-def extract_variables(content: str) -> List[str]:
-    """Extract template variables from prompt content. Variables are in the format {{variable_name}}
+def extract_variables(content: str) -> list[str]:
+    """Extract template variables from prompt content.
+
+    Variables are in the format {{variable_name}}.
 
     Args:
-        content (str): The string containing template variables to be extracted.
+        content (str): The string containing template variables to be
+            extracted.
 
     Returns:
         List[str]: A list of extracted variable names.
@@ -92,7 +113,4 @@ def extract_variables(content: str) -> List[str]:
         >>> extract_variables("Hello, {{user}}! Today is {{day}}.")
         ['user', 'day']
     """
-    import re
-    pattern = r'\{\{(\w+)\}\}'
-    return re.findall(pattern, content)
-
+    return TEMPLATE_VARIABLE_PATTERN.findall(content)
