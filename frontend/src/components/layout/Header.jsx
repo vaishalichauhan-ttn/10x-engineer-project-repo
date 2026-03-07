@@ -5,7 +5,7 @@ function Header({ onCreatePrompt, onOpenPrompts, onOpenCollections, currentPath 
   return (
     <header className={styles.header}>
       <div>
-        <h1 className={styles.title}>PromptLab</h1>
+        <h1 className={styles.title}>Prompt Lab</h1>
         <p className={styles.subtitle}>Design, save, and organize prompt templates</p>
       </div>
 

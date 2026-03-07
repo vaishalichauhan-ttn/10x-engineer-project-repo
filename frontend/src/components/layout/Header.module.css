@@ -1,25 +1,32 @@
 .header {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 1.25rem;
   align-items: center;
   margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-surface) 92%, #f8fbff 8%);
+  box-shadow: var(--shadow-sm);
 }
 
 .title {
   margin: 0;
-  font-size: 1.6rem;
-  color: #111827;
+  font-size: 1.7rem;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
 }
 
 .subtitle {
   margin: 0.35rem 0 0;
-  color: #6b7280;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
 }
 
 .actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.55rem;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
@@ -28,6 +35,7 @@
   .header {
     flex-direction: column;
     align-items: stretch;
+    padding: 0.85rem;
   }
 
   .actions {

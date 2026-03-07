@@ -1,18 +1,20 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
   display: grid;
   place-items: center;
   padding: 1rem;
-  z-index: 30;
+  z-index: 40;
 }
 
 .dialog {
   width: min(640px, 95vw);
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 24px 40px rgba(15, 23, 42, 0.24);
+  background: var(--bg-surface);
+  border-radius: 14px;
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.26);
   overflow: hidden;
   max-height: calc(100vh - 2rem);
   display: flex;
@@ -25,12 +27,14 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 1rem 1.1rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--bg-muted);
 }
 
 .header h3 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
+  font-size: 1.08rem;
 }
 
 .body {
@@ -40,7 +44,8 @@
 
 .footer {
   padding: 0.95rem 1.1rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border-soft);
+  background: var(--bg-muted);
   display: flex;
   justify-content: flex-end;
   gap: 0.6rem;

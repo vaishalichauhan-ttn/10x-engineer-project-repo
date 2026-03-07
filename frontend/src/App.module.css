@@ -1,48 +1,59 @@
 .toolbar {
   display: grid;
-  grid-template-columns: 1fr 260px;
-  gap: 0.75rem;
+  grid-template-columns: 1fr 280px;
+  gap: 0.85rem;
   align-items: end;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  padding: 0.9rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .filter {
   display: grid;
   gap: 0.35rem;
-  color: #374151;
-  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .filter select {
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-strong);
   border-radius: 10px;
-  padding: 0.58rem 0.75rem;
+  padding: 0.62rem 0.75rem;
   font-size: 0.95rem;
-  color: #111827;
-  background: #ffffff;
+  color: var(--text-primary);
+  background: var(--bg-surface);
 }
 
 .filter select:focus {
-  outline: 2px solid #93c5fd;
-  border-color: #2563eb;
+  outline: 3px solid var(--accent-soft);
+  border-color: var(--accent);
 }
 
 .collectionsPage {
   display: grid;
-  gap: 0.9rem;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  gap: 1rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
   padding: 1rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .collectionsPage h2 {
   margin: 0;
-  color: #111827;
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
 }
 
 .confirmationText {
   margin: 0;
-  color: #374151;
+  color: var(--text-secondary);
+  line-height: 1.65;
 }
 
 @media (max-width: 780px) {
