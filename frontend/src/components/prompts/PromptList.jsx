@@ -9,7 +9,7 @@ function PromptList({
   onDeletePrompt,
 }) {
   if (prompts.length === 0) {
-    return <p className={styles.empty}>No prompts found for this view.</p>
+    return <p className={styles.empty}>No prompts found</p>
   }
 
   return (

@@ -289,8 +289,6 @@ function App() {
             }}
             onDeletePrompt={requestDeletePrompt}
           />
-
-          {prompts.length === 0 && <LoadingSpinner label="No prompts available yet" />}
         </>
       ) : (
         <section className={styles.collectionsPage}>
