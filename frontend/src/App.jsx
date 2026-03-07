@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { createCollection, deleteCollection, getCollections } from './api/collections'
+import { createPrompt, deletePrompt, getPrompt, getPrompts, updatePrompt } from './api/prompts'
 import CollectionForm from './components/collections/CollectionForm'
 import CollectionList from './components/collections/CollectionList'
 import Layout from './components/layout/Layout'
@@ -13,44 +15,51 @@ import Modal from './components/shared/Modal'
 import SearchBar from './components/shared/SearchBar'
 import styles from './App.module.css'
 
-const initialCollections = [
-  { id: 'c1', name: 'Marketing' },
-  { id: 'c2', name: 'Development' },
-]
-
-const initialPrompts = [
-  {
-    id: 'p1',
-    title: 'Launch announcement',
-    description: 'Draft a release announcement post for social media.',
-    content: 'Write a LinkedIn launch announcement for PromptLab.',
-    collection_id: 'c1',
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'p2',
-    title: 'Code review helper',
-    description: 'Summarize pull request changes and risk areas.',
-    content: 'Review this PR diff and list potential regressions.',
-    collection_id: 'c2',
-    updated_at: new Date().toISOString(),
-  },
-]
+function normalizePromptPayload(formData) {
+  return {
+    title: formData.title.trim(),
+    content: formData.content.trim(),
+    description: formData.description?.trim() || null,
+    collection_id: formData.collection_id || null,
+  }
+}
 
 function App() {
   const [currentPath, setCurrentPath] = useState(() =>
     window.location.pathname === '/collections' ? '/collections' : '/',
   )
-  const [collections, setCollections] = useState(initialCollections)
-  const [prompts, setPrompts] = useState(initialPrompts)
+  const [collections, setCollections] = useState([])
+  const [prompts, setPrompts] = useState([])
+  const [isLoadingData, setIsLoadingData] = useState(true)
   const [selectedCollectionId, setSelectedCollectionId] = useState(null)
   const [selectedPrompt, setSelectedPrompt] = useState(null)
   const [promptPendingDelete, setPromptPendingDelete] = useState(null)
   const [collectionPendingDelete, setCollectionPendingDelete] = useState(null)
+  const [isLoadingPromptDetail, setIsLoadingPromptDetail] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [modalMode, setModalMode] = useState('')
   const [editingPrompt, setEditingPrompt] = useState(null)
   const [errorMessage, setErrorMessage] = useState('')
+
+  useEffect(() => {
+    async function loadInitialData() {
+      try {
+        setErrorMessage('')
+        const [collectionsData, promptsData] = await Promise.all([
+          getCollections(),
+          getPrompts(),
+        ])
+        setCollections(collectionsData)
+        setPrompts(promptsData)
+      } catch (error) {
+        setErrorMessage(error.message || 'Failed to load application data.')
+      } finally {
+        setIsLoadingData(false)
+      }
+    }
+
+    loadInitialData()
+  }, [])
 
   useEffect(() => {
     function handlePopState() {
@@ -100,6 +109,7 @@ function App() {
     setEditingPrompt(null)
     setPromptPendingDelete(null)
     setCollectionPendingDelete(null)
+    setIsLoadingPromptDetail(false)
   }
 
   function handleCreatePrompt() {
@@ -119,29 +129,29 @@ function App() {
     navigate('/collections')
   }
 
-  function handleSavePrompt(formData) {
-    if (editingPrompt) {
-      const updatedPrompt = {
-        ...editingPrompt,
-        ...formData,
-        updated_at: new Date().toISOString(),
-      }
-      setPrompts((current) =>
-        current.map((prompt) => (prompt.id === editingPrompt.id ? updatedPrompt : prompt)),
-      )
-      if (selectedPrompt?.id === updatedPrompt.id) {
-        setSelectedPrompt(updatedPrompt)
-      }
-    } else {
-      const createdPrompt = {
-        id: `p-${Date.now()}`,
-        ...formData,
-        updated_at: new Date().toISOString(),
-      }
-      setPrompts((current) => [createdPrompt, ...current])
-    }
+  async function handleSavePrompt(formData) {
+    const payload = normalizePromptPayload(formData)
 
-    closeModal()
+    try {
+      setErrorMessage('')
+
+      if (editingPrompt) {
+        const updatedPrompt = await updatePrompt(editingPrompt.id, payload)
+        setPrompts((current) =>
+          current.map((prompt) => (prompt.id === editingPrompt.id ? updatedPrompt : prompt)),
+        )
+        if (selectedPrompt?.id === updatedPrompt.id) {
+          setSelectedPrompt(updatedPrompt)
+        }
+      } else {
+        const createdPrompt = await createPrompt(payload)
+        setPrompts((current) => [createdPrompt, ...current])
+      }
+
+      closeModal()
+    } catch (error) {
+      setErrorMessage(error.message || 'Failed to save prompt.')
+    }
   }
 
   function requestDeletePrompt(promptToDelete) {
@@ -149,19 +159,41 @@ function App() {
     setModalMode('confirmDeletePrompt')
   }
 
-  function confirmDeletePrompt() {
+  async function handleViewPrompt(prompt) {
+    setSelectedPrompt(prompt)
+    setModalMode('viewPrompt')
+    setIsLoadingPromptDetail(true)
+
+    try {
+      setErrorMessage('')
+      const latestPrompt = await getPrompt(prompt.id)
+      setSelectedPrompt(latestPrompt)
+    } catch (error) {
+      setErrorMessage(error.message || 'Failed to load prompt details.')
+    } finally {
+      setIsLoadingPromptDetail(false)
+    }
+  }
+
+  async function confirmDeletePrompt() {
     if (!promptPendingDelete) {
       return
     }
 
-    setPrompts((current) => current.filter((prompt) => prompt.id !== promptPendingDelete.id))
-    if (selectedPrompt?.id === promptPendingDelete.id) {
-      setSelectedPrompt(null)
+    try {
+      setErrorMessage('')
+      await deletePrompt(promptPendingDelete.id)
+      setPrompts((current) => current.filter((prompt) => prompt.id !== promptPendingDelete.id))
+      if (selectedPrompt?.id === promptPendingDelete.id) {
+        setSelectedPrompt(null)
+      }
+      closeModal()
+    } catch (error) {
+      setErrorMessage(error.message || 'Failed to delete prompt.')
     }
-    closeModal()
   }
 
-  function handleCreateCollection(formData) {
+  async function handleCreateCollection(formData) {
     const normalizedName = formData.name.trim().toLowerCase()
     const duplicate = collections.some(
       (collection) => collection.name.trim().toLowerCase() === normalizedName,
@@ -172,8 +204,15 @@ function App() {
       return
     }
 
-    setCollections((current) => [...current, { id: `c-${Date.now()}`, ...formData }])
-    setErrorMessage('')
+    try {
+      setErrorMessage('')
+      const createdCollection = await createCollection({
+        name: formData.name.trim(),
+      })
+      setCollections((current) => [...current, createdCollection])
+    } catch (error) {
+      setErrorMessage(error.message || 'Failed to create collection.')
+    }
   }
 
   function requestDeleteCollection(collection) {
@@ -181,23 +220,30 @@ function App() {
     setModalMode('confirmDeleteCollection')
   }
 
-  function confirmDeleteCollection() {
+  async function confirmDeleteCollection() {
     if (!collectionPendingDelete) {
       return
     }
 
-    const collectionId = collectionPendingDelete.id
+    try {
+      setErrorMessage('')
+      const collectionId = collectionPendingDelete.id
+      await deleteCollection(collectionId)
 
-    setCollections((current) => current.filter((collection) => collection.id !== collectionId))
-    setPrompts((current) =>
-      current.map((prompt) =>
-        prompt.collection_id === collectionId ? { ...prompt, collection_id: null } : prompt,
-      ),
-    )
-    if (selectedCollectionId === collectionId) {
-      setSelectedCollectionId(null)
+      setCollections((current) => current.filter((collection) => collection.id !== collectionId))
+      setPrompts((current) =>
+        current.map((prompt) =>
+          prompt.collection_id === collectionId ? { ...prompt, collection_id: null } : prompt,
+        ),
+      )
+
+      if (selectedCollectionId === collectionId) {
+        setSelectedCollectionId(null)
+      }
+      closeModal()
+    } catch (error) {
+      setErrorMessage(error.message || 'Failed to delete collection.')
     }
-    closeModal()
   }
 
   const isPromptsRoute = currentPath === '/'
@@ -211,7 +257,9 @@ function App() {
     >
       <ErrorMessage message={errorMessage} />
 
-      {isPromptsRoute ? (
+      {isLoadingData ? (
+        <LoadingSpinner label="Loading data..." />
+      ) : isPromptsRoute ? (
         <>
           <div className={styles.toolbar}>
             <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder="Search prompts" />
@@ -234,10 +282,7 @@ function App() {
           <PromptList
             prompts={visiblePrompts}
             collectionNameById={collectionNameById}
-            onViewPrompt={(prompt) => {
-              setSelectedPrompt(prompt)
-              setModalMode('viewPrompt')
-            }}
+            onViewPrompt={handleViewPrompt}
             onEditPrompt={(prompt) => {
               setEditingPrompt(prompt)
               setModalMode('promptForm')
@@ -274,13 +319,18 @@ function App() {
       </Modal>
 
       <Modal isOpen={modalMode === 'viewPrompt'} title="Prompt Details" onClose={closeModal}>
-        <PromptDetail prompt={selectedPrompt} />
+        {isLoadingPromptDetail ? (
+          <LoadingSpinner label="Loading prompt details..." />
+        ) : (
+          <PromptDetail prompt={selectedPrompt} />
+        )}
       </Modal>
 
       <Modal
         isOpen={modalMode === 'confirmDeletePrompt'}
         title="Delete Prompt"
         onClose={closeModal}
+        showCloseButton={false}
         footer={
           <>
             <Button variant="secondary" onClick={closeModal}>
@@ -302,6 +352,7 @@ function App() {
         isOpen={modalMode === 'confirmDeleteCollection'}
         title="Delete Collection"
         onClose={closeModal}
+        showCloseButton={false}
         footer={
           <>
             <Button variant="secondary" onClick={closeModal}>

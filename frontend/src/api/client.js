@@ -13,20 +13,36 @@ async function parseJson(response) {
   }
 }
 
+function buildErrorMessage(payload, status) {
+  if (!payload) {
+    return `Request failed with status ${status}`
+  }
+
+  if (Array.isArray(payload.detail)) {
+    return payload.detail.map((item) => item.msg).join(', ')
+  }
+
+  return payload.detail || `Request failed with status ${status}`
+}
+
 export async function apiRequest(path, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-    ...options,
-  })
+  let response
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      },
+      ...options,
+    })
+  } catch {
+    throw new Error('Network error. Please check your connection and try again.')
+  }
 
   const payload = await parseJson(response)
 
   if (!response.ok) {
-    const message = payload?.detail || `Request failed with status ${response.status}`
-    throw new Error(message)
+    throw new Error(buildErrorMessage(payload, response.status))
   }
 
   return payload
