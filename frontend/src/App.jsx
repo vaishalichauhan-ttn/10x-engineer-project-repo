@@ -13,16 +13,8 @@ import ErrorMessage from './components/shared/ErrorMessage'
 import LoadingSpinner from './components/shared/LoadingSpinner'
 import Modal from './components/shared/Modal'
 import SearchBar from './components/shared/SearchBar'
+import { normalizePromptPayload, toUserMessage } from './utils/promptUtils'
 import styles from './App.module.css'
-
-function normalizePromptPayload(formData) {
-  return {
-    title: formData.title.trim(),
-    content: formData.content.trim(),
-    description: formData.description?.trim() || null,
-    collection_id: formData.collection_id || null,
-  }
-}
 
 function App() {
   const [currentPath, setCurrentPath] = useState(() =>
@@ -36,10 +28,16 @@ function App() {
   const [promptPendingDelete, setPromptPendingDelete] = useState(null)
   const [collectionPendingDelete, setCollectionPendingDelete] = useState(null)
   const [isLoadingPromptDetail, setIsLoadingPromptDetail] = useState(false)
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false)
+  const [isDeletingPrompt, setIsDeletingPrompt] = useState(false)
+  const [isCreatingCollection, setIsCreatingCollection] = useState(false)
+  const [isDeletingCollection, setIsDeletingCollection] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [modalMode, setModalMode] = useState('')
   const [editingPrompt, setEditingPrompt] = useState(null)
   const [errorMessage, setErrorMessage] = useState('')
+  const [promptFormError, setPromptFormError] = useState('')
+  const [collectionFormError, setCollectionFormError] = useState('')
 
   useEffect(() => {
     async function loadInitialData() {
@@ -52,7 +50,7 @@ function App() {
         setCollections(collectionsData)
         setPrompts(promptsData)
       } catch (error) {
-        setErrorMessage(error.message || 'Failed to load application data.')
+        setErrorMessage(toUserMessage(error))
       } finally {
         setIsLoadingData(false)
       }
@@ -109,6 +107,7 @@ function App() {
     setEditingPrompt(null)
     setPromptPendingDelete(null)
     setCollectionPendingDelete(null)
+    setPromptFormError('')
     setIsLoadingPromptDetail(false)
   }
 
@@ -131,10 +130,11 @@ function App() {
 
   async function handleSavePrompt(formData) {
     const payload = normalizePromptPayload(formData)
+    setPromptFormError('')
+    setErrorMessage('')
+    setIsSavingPrompt(true)
 
     try {
-      setErrorMessage('')
-
       if (editingPrompt) {
         const updatedPrompt = await updatePrompt(editingPrompt.id, payload)
         setPrompts((current) =>
@@ -150,7 +150,9 @@ function App() {
 
       closeModal()
     } catch (error) {
-      setErrorMessage(error.message || 'Failed to save prompt.')
+      setPromptFormError(toUserMessage(error))
+    } finally {
+      setIsSavingPrompt(false)
     }
   }
 
@@ -169,17 +171,18 @@ function App() {
       const latestPrompt = await getPrompt(prompt.id)
       setSelectedPrompt(latestPrompt)
     } catch (error) {
-      setErrorMessage(error.message || 'Failed to load prompt details.')
+      setErrorMessage(toUserMessage(error))
     } finally {
       setIsLoadingPromptDetail(false)
     }
   }
 
   async function confirmDeletePrompt() {
-    if (!promptPendingDelete) {
+    if (!promptPendingDelete || isDeletingPrompt) {
       return
     }
 
+    setIsDeletingPrompt(true)
     try {
       setErrorMessage('')
       await deletePrompt(promptPendingDelete.id)
@@ -189,29 +192,27 @@ function App() {
       }
       closeModal()
     } catch (error) {
-      setErrorMessage(error.message || 'Failed to delete prompt.')
+      setErrorMessage(toUserMessage(error))
+    } finally {
+      setIsDeletingPrompt(false)
     }
   }
 
   async function handleCreateCollection(formData) {
-    const normalizedName = formData.name.trim().toLowerCase()
-    const duplicate = collections.some(
-      (collection) => collection.name.trim().toLowerCase() === normalizedName,
-    )
-
-    if (duplicate) {
-      setErrorMessage('Collection names must be unique.')
-      return
-    }
-
+    setCollectionFormError('')
+    setErrorMessage('')
+    setIsCreatingCollection(true)
     try {
-      setErrorMessage('')
       const createdCollection = await createCollection({
         name: formData.name.trim(),
       })
       setCollections((current) => [...current, createdCollection])
+      return true
     } catch (error) {
-      setErrorMessage(error.message || 'Failed to create collection.')
+      setCollectionFormError(toUserMessage(error))
+      return false
+    } finally {
+      setIsCreatingCollection(false)
     }
   }
 
@@ -221,10 +222,11 @@ function App() {
   }
 
   async function confirmDeleteCollection() {
-    if (!collectionPendingDelete) {
+    if (!collectionPendingDelete || isDeletingCollection) {
       return
     }
 
+    setIsDeletingCollection(true)
     try {
       setErrorMessage('')
       const collectionId = collectionPendingDelete.id
@@ -242,11 +244,14 @@ function App() {
       }
       closeModal()
     } catch (error) {
-      setErrorMessage(error.message || 'Failed to delete collection.')
+      setErrorMessage(toUserMessage(error))
+    } finally {
+      setIsDeletingCollection(false)
     }
   }
 
   const isPromptsRoute = currentPath === '/'
+  const hasFilters = Boolean(searchQuery.trim()) || Boolean(selectedCollectionId)
 
   return (
     <Layout
@@ -281,6 +286,8 @@ function App() {
 
           <PromptList
             prompts={visiblePrompts}
+            hasAnyPrompts={prompts.length > 0}
+            hasFilters={hasFilters}
             collectionNameById={collectionNameById}
             onViewPrompt={handleViewPrompt}
             onEditPrompt={(prompt) => {
@@ -288,12 +295,18 @@ function App() {
               setModalMode('promptForm')
             }}
             onDeletePrompt={requestDeletePrompt}
+            onCreatePrompt={handleCreatePrompt}
           />
         </>
       ) : (
         <section className={styles.collectionsPage}>
           <h2>Collections</h2>
-          <CollectionForm onSubmit={handleCreateCollection} />
+          <CollectionForm
+            onSubmit={handleCreateCollection}
+            existingNames={collections.map((collection) => collection.name)}
+            isSubmitting={isCreatingCollection}
+            submitError={collectionFormError}
+          />
           <CollectionList
             collections={collections}
             onRequestDeleteCollection={requestDeleteCollection}
@@ -313,6 +326,8 @@ function App() {
           submitLabel={editingPrompt ? 'Update Prompt' : 'Create Prompt'}
           onSubmit={handleSavePrompt}
           onCancel={closeModal}
+          isSubmitting={isSavingPrompt}
+          submitError={promptFormError}
         />
       </Modal>
 
@@ -334,8 +349,8 @@ function App() {
             <Button variant="secondary" onClick={closeModal}>
               Cancel
             </Button>
-            <Button variant="danger" onClick={confirmDeletePrompt}>
-              Delete
+            <Button variant="danger" onClick={confirmDeletePrompt} disabled={isDeletingPrompt}>
+              {isDeletingPrompt ? 'Deleting...' : 'Delete'}
             </Button>
           </>
         }
@@ -356,8 +371,12 @@ function App() {
             <Button variant="secondary" onClick={closeModal}>
               Cancel
             </Button>
-            <Button variant="danger" onClick={confirmDeleteCollection}>
-              Delete
+            <Button
+              variant="danger"
+              onClick={confirmDeleteCollection}
+              disabled={isDeletingCollection}
+            >
+              {isDeletingCollection ? 'Deleting...' : 'Delete'}
             </Button>
           </>
         }

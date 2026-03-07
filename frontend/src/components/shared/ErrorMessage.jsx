@@ -5,7 +5,11 @@ function ErrorMessage({ message }) {
     return null
   }
 
-  return <p className={styles.error}>{message}</p>
+  return (
+    <p className={styles.error} role="alert" aria-live="assertive">
+      {message}
+    </p>
+  )
 }
 
 export default ErrorMessage

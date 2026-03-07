@@ -36,3 +36,24 @@
   display: flex;
   gap: 0.55rem;
 }
+
+.fieldError {
+  color: #b91c1c;
+  font-size: 0.82rem;
+}
+
+.submitError {
+  margin: 0;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .actions {
+    flex-direction: column;
+  }
+}

@@ -49,4 +49,8 @@
   .toolbar {
     grid-template-columns: 1fr;
   }
+
+  .collectionsPage {
+    padding: 0.85rem;
+  }
 }

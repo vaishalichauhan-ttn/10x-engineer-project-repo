@@ -1,6 +1,8 @@
 .form {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.5rem;
+  align-items: start;
 }
 
 .form input {
@@ -13,4 +15,28 @@
 .form input:focus {
   outline: 2px solid #bfdbfe;
   border-color: #2563eb;
+}
+
+.fieldError {
+  margin: 0;
+  grid-column: 1 / -1;
+  color: #b91c1c;
+  font-size: 0.84rem;
+}
+
+.submitError {
+  margin: 0;
+  grid-column: 1 / -1;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 640px) {
+  .form {
+    grid-template-columns: 1fr;
+  }
 }

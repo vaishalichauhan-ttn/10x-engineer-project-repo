@@ -47,5 +47,17 @@
 
   .actions {
     justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 520px) {
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .actions > * {
+    width: 100%;
   }
 }

@@ -13,12 +13,14 @@ function Header({ onCreatePrompt, onOpenPrompts, onOpenCollections, currentPath 
         <Button
           variant={currentPath === '/' ? 'primary' : 'secondary'}
           onClick={onOpenPrompts}
+          aria-pressed={currentPath === '/'}
         >
           Prompts
         </Button>
         <Button
           variant={currentPath === '/collections' ? 'primary' : 'secondary'}
           onClick={onOpenCollections}
+          aria-pressed={currentPath === '/collections'}
         >
           Collections
         </Button>

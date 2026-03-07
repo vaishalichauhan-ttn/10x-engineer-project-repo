@@ -25,3 +25,10 @@
   margin: 0;
   color: #6b7280;
 }
+
+@media (max-width: 560px) {
+  .item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

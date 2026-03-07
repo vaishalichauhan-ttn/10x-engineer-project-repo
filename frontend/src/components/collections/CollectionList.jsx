@@ -3,7 +3,11 @@ import styles from './CollectionList.module.css'
 
 function CollectionList({ collections, onRequestDeleteCollection }) {
   if (collections.length === 0) {
-    return <p className={styles.empty}>No collections created yet.</p>
+    return (
+      <p className={styles.empty} role="status" aria-live="polite">
+        No collections created yet. Add one above to organize your prompts.
+      </p>
+    )
   }
 
   return (
