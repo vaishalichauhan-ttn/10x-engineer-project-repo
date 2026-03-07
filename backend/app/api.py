@@ -40,7 +40,11 @@ def _get_cors_origins() -> list[str]:
         "CORS_ALLOW_ORIGINS",
         "http://localhost:5173,http://127.0.0.1:5173",
     )
-    origins = [origin.strip() for origin in origins_raw.split(",") if origin.strip()]
+    origins = [
+        origin.strip()
+        for origin in origins_raw.split(",")
+        if origin.strip()
+    ]
     if not origins:
         return ["http://localhost:5173", "http://127.0.0.1:5173"]
     return origins
