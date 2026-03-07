@@ -14,6 +14,18 @@ class TestHealth:
         assert data["status"] == "healthy"
         assert "version" in data
 
+    def test_cors_preflight_allows_local_frontend_origin(self, client: TestClient):
+        response = client.options(
+            "/health",
+            headers={
+                "Origin": "http://localhost:5173",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        assert response.status_code == 200
+        assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+        assert response.headers["access-control-allow-credentials"] == "true"
+
 
 class TestPrompts:
     """Tests for prompt endpoints."""
