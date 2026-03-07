@@ -58,6 +58,21 @@ pytest tests/ -v
 
 ---
 
+## Docker Compose (Frontend + Backend)
+Run both services together:
+
+```bash
+docker compose up --build
+```
+
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8000`
+- Backend docs: `http://localhost:8000/docs`
+
+The frontend container proxies `/api/*` requests to the backend container via Docker networking.
+
+---
+
 ## API Endpoint Summary
 
 **Health**
