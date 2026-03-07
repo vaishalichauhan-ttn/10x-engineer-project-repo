@@ -1,0 +1,9 @@
+.page {
+  width: min(1100px, 94vw);
+  margin: 1.5rem auto;
+}
+
+.main {
+  display: grid;
+  gap: 1rem;
+}

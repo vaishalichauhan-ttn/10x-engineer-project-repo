@@ -1,0 +1,52 @@
+.toolbar {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.filter {
+  display: grid;
+  gap: 0.35rem;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.filter select {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 0.58rem 0.75rem;
+  font-size: 0.95rem;
+  color: #111827;
+  background: #ffffff;
+}
+
+.filter select:focus {
+  outline: 2px solid #93c5fd;
+  border-color: #2563eb;
+}
+
+.collectionsPage {
+  display: grid;
+  gap: 0.9rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.collectionsPage h2 {
+  margin: 0;
+  color: #111827;
+}
+
+.confirmationText {
+  margin: 0;
+  color: #374151;
+}
+
+@media (max-width: 780px) {
+  .toolbar {
+    grid-template-columns: 1fr;
+  }
+}

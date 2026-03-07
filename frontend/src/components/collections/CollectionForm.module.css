@@ -1,0 +1,16 @@
+.form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.form input {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+}
+
+.form input:focus {
+  outline: 2px solid #bfdbfe;
+  border-color: #2563eb;
+}
