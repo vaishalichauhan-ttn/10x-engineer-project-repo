@@ -7,6 +7,8 @@ function Layout({
   onOpenPrompts,
   onOpenCollections,
   currentPath,
+  theme,
+  onToggleTheme,
 }) {
   return (
     <div className={styles.page}>
@@ -15,6 +17,8 @@ function Layout({
         onOpenPrompts={onOpenPrompts}
         onOpenCollections={onOpenCollections}
         currentPath={currentPath}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
       />
 
       <section className={styles.main}>{children}</section>

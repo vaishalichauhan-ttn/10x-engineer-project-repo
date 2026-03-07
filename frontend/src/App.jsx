@@ -16,10 +16,20 @@ import SearchBar from './components/shared/SearchBar'
 import { normalizePromptPayload, toUserMessage } from './utils/promptUtils'
 import styles from './App.module.css'
 
+const THEME_STORAGE_KEY = 'promptlab-theme'
+
 function App() {
   const [currentPath, setCurrentPath] = useState(() =>
     window.location.pathname === '/collections' ? '/collections' : '/',
   )
+  const [theme, setTheme] = useState(() => {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY)
+    if (storedTheme === 'light' || storedTheme === 'dark') {
+      return storedTheme
+    }
+
+    return 'light'
+  })
   const [collections, setCollections] = useState([])
   const [prompts, setPrompts] = useState([])
   const [isLoadingData, setIsLoadingData] = useState(true)
@@ -68,6 +78,11 @@ function App() {
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme)
+  }, [theme])
 
   const visiblePrompts = useMemo(() => {
     return prompts.filter((prompt) => {
@@ -126,6 +141,10 @@ function App() {
 
   function handleOpenCollections() {
     navigate('/collections')
+  }
+
+  function handleToggleTheme() {
+    setTheme((current) => (current === 'dark' ? 'light' : 'dark'))
   }
 
   async function handleSavePrompt(formData) {
@@ -259,6 +278,8 @@ function App() {
       onOpenPrompts={handleOpenPrompts}
       onOpenCollections={handleOpenCollections}
       currentPath={currentPath}
+      theme={theme}
+      onToggleTheme={handleToggleTheme}
     >
       <ErrorMessage message={errorMessage} />
 

@@ -1,14 +1,19 @@
 .header {
-  display: flex;
-  justify-content: space-between;
-  gap: 1.25rem;
-  align-items: center;
+  display: grid;
+  gap: 0.9rem;
   margin-bottom: 1rem;
   padding: 1rem 1.1rem;
   border: 1px solid var(--border-soft);
   border-radius: 16px;
-  background: color-mix(in srgb, var(--bg-surface) 92%, #f8fbff 8%);
+  background: var(--bg-surface);
   box-shadow: var(--shadow-sm);
+}
+
+.topRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
 }
 
 .title {
@@ -24,21 +29,86 @@
   font-size: 0.95rem;
 }
 
-.actions {
+.themeSwitchWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.themeLabel {
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.themeSwitch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.themeSwitch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.themeTrack {
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--bg-muted);
+  border: 1px solid var(--border-strong);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.themeThumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transform: translateX(0);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.themeSwitch input:focus-visible + .themeTrack {
+  outline: 3px solid var(--accent-soft);
+  outline-offset: 2px;
+}
+
+.themeSwitch input:checked + .themeTrack {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.themeSwitch input:checked + .themeTrack .themeThumb {
+  transform: translateX(20px);
+  background: var(--accent);
+}
+
+.menu {
   display: flex;
   gap: 0.55rem;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 @media (max-width: 780px) {
-  .header {
+  .topRow {
+    align-items: flex-start;
     flex-direction: column;
-    align-items: stretch;
-    padding: 0.85rem;
   }
 
-  .actions {
-    justify-content: flex-start;
+  .themeSwitchWrap {
+    align-self: flex-end;
   }
 }
